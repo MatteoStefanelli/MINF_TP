@@ -54,7 +54,10 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 // *****************************************************************************
 
 #include "app.h"
-
+#include "Mc32DriverLcd.h"
+#include "Mc32DriverAdc.h"
+//#include "Mc32DriverAdcAlt.h"
+#include "bsp.h"
 // *****************************************************************************
 // *****************************************************************************
 // Section: Global Data Definitions
@@ -134,27 +137,59 @@ void APP_Initialize ( void )
 
 void APP_Tasks ( void )
 {
-
+    
+    //uint8_t x = 0; 
+    
     /* Check the application's current state. */
-    switch ( appData.state )
+    switch (appData.state)
     {
         /* Application's initial state. */
         case APP_STATE_INIT:
         {
-            bool appInitialized = true;
-       
-        
-            if (appInitialized)
-            {
+            //lancement du timer
+            DRV_TMR0_Start();
             
-                appData.state = APP_STATE_SERVICE_TASKS;
-            }
+            //init du LCD
+            lcd_init();
+            lcd_bl_on();
+            lcd_gotoxy(1,1);
+            printf_lcd("TP0 LED+AD 2024-25");
+            lcd_gotoxy(1,2);
+            printf_lcd("Stefanelli");
+
+            //init de l'AD
+            BSP_InitADC10();
+            
+            //allumage des leds
+            FullLedOn();
+
+            //next case 
+            appData.state = APP_STATE_WAIT;
+                
+            break;
+        }
+        
+        case APP_STATE_WAIT : 
+        {
             break;
         }
 
         case APP_STATE_SERVICE_TASKS:
-        {
-        
+        { 
+            //Exctinction des leds
+            FullLedOff();
+            
+            //Lecture des potentiomètres et affichage sur LCD de la 3ème ligne
+            appData.AdcRes = BSP_ReadAllADC();
+            lcd_gotoxy(1,3);
+            printf_lcd("CH0 %4d CH1 %4d",appData.AdcRes.Chan0,appData.AdcRes.Chan1);
+                        
+            //chenillard
+            chenillard();
+            
+            //Retour dans l'état d'attente
+            APP_UpdateState ( APP_STATE_WAIT );
+            
             break;
         }
 
@@ -170,7 +205,131 @@ void APP_Tasks ( void )
     }
 }
 
- 
+//****************************************************************************/
+//Fonction de chenillard sur les leds de la carte PIC32
+// Prototypes :
+                  /*   void chenillard(void);   */
+void chenillard(void)
+{
+    static int i = 0;
+    
+    FullLedOff();
+    
+    switch(i)
+    {
+        case 0: //led 0 allumée, le reste etint
+            BSP_LEDOn(BSP_LED_0);
+            i++;
+        break;
+  
+        case 1: //led 0 allumée, le reste etint
+            BSP_LEDOff(BSP_LED_0);
+            BSP_LEDOn(BSP_LED_1);
+            i++; 
+        break;
+        
+        case 2: //led 0 allumée, le reste etint
+            BSP_LEDOff(BSP_LED_1);
+            BSP_LEDOn(BSP_LED_2);
+            i++;          
+        break;
+  
+        case 3: //led 0 allumée, le reste etint
+            BSP_LEDOff(BSP_LED_2);
+            BSP_LEDOn(BSP_LED_3);
+            i++;         
+        break;
+        
+        case 4: //led 0 allumée, le reste etint
+            BSP_LEDOff(BSP_LED_3);
+            BSP_LEDOn(BSP_LED_4);
+            i++;           
+        break;
+  
+        case 5: //led 0 allumée, le reste etint
+            BSP_LEDOff(BSP_LED_4);
+            BSP_LEDOn(BSP_LED_5);
+            i++;           
+        break;
+        
+        case 6: //led 0 allumée, le reste etint  
+            BSP_LEDOff(BSP_LED_5);
+            BSP_LEDOn(BSP_LED_6);
+            
+            i++;     
+        break;
+  
+        case 7: //led 0 allumée, le reste etint
+            BSP_LEDOff(BSP_LED_6);
+            BSP_LEDOn(BSP_LED_7);;
+            i = 0;
+            
+        break;       
+        
+        default:
+        break;    
+    }
+}
+ //****************************************************************************/
+//Fonction pour l'activation apreès 3 secondes, puis toutes les 100ms
+// Prototypes :
+                  /*   void APP_Timer1CallBack(void);   */
+
+
+void APP_Timer1CallBack(void)
+{
+   static int16_t count = 0;
+   // Attente 3 secondes, puis cycle de 100 ms
+   count++;
+   if (count >= 30 ) 
+    {
+        // Etablit etat d'execution
+        APP_UpdateState ( APP_STATE_SERVICE_TASKS );
+        count = 29;
+    }
+        
+}
+//*****************************************************************************/
+//Fonction pour charger le nouvelle de la machine d'etat
+// Prototypes :
+                  /*   void APP_UpdateState(APP_STATES newState);   */
+
+void APP_UpdateState(APP_STATES newState)
+{
+    appData.state = newState;
+}
+
+/*****************************************************************************/
+//Fonction pour eteindre et allumer les leds (toutes les leds)
+
+// Prototypes :
+                  /*   void FullLedOn(void);   */
+                  /*   void FullLedOff(void);   */  
+                   /*voir dans app.h*/
+
+void FullLedOn(void)
+{
+    BSP_LEDOn(BSP_LED_0);
+    BSP_LEDOn(BSP_LED_1);
+    BSP_LEDOn(BSP_LED_2);
+    BSP_LEDOn(BSP_LED_3);
+    BSP_LEDOn(BSP_LED_4);
+    BSP_LEDOn(BSP_LED_5);
+    BSP_LEDOn(BSP_LED_6);
+    BSP_LEDOn(BSP_LED_7);  
+}
+
+ void FullLedOff(void)
+{
+    BSP_LEDOff(BSP_LED_0);
+    BSP_LEDOff(BSP_LED_1);
+    BSP_LEDOff(BSP_LED_2);
+    BSP_LEDOff(BSP_LED_3);
+    BSP_LEDOff(BSP_LED_4);
+    BSP_LEDOff(BSP_LED_5);
+    BSP_LEDOff(BSP_LED_6);
+    BSP_LEDOff(BSP_LED_7);  
+}
 
 /*******************************************************************************
  End of File

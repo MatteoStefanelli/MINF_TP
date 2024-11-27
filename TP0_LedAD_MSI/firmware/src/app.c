@@ -286,8 +286,7 @@ void APP_Timer1CallBack(void)
         // Etablit etat d'execution
         APP_UpdateState ( APP_STATE_SERVICE_TASKS );
         count = 29;
-    }
-        
+    }    
 }
 //*****************************************************************************/
 //Fonction pour charger le nouvelle de la machine d'etat
